@@ -1,6 +1,7 @@
+from typing import Callable
 import numpy as np
 
-_FUNCTIONS = {
+_FUNCTIONS: dict[str, Callable] = {
     "abs": np.abs,
     "asinh": np.arcsinh,
     "atan": np.arctan,
@@ -23,10 +24,12 @@ _DOMAINS = {
     "tan": (-1.5, 1.5),
 }
 
-FUNCTION_NAMES = list(_FUNCTIONS.keys())
+FUNCTION_NAMES: list[str] = list(_FUNCTIONS.keys())
 
-def get_function(name):
+
+def get_function(name: str) -> Callable:
     return _FUNCTIONS[name]
 
-def get_domain(name):
+
+def get_domain(name: str) -> tuple[float, float]:
     return _DOMAINS[name]
