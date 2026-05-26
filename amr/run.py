@@ -31,12 +31,16 @@ def _bounds_for(name, config):
 def run_function(name, config, n_restarts=8):
     start = time.time()
     fitness = make_fitness(name, config)
-    bounds = _bounds_for(name, config)
+    llm_bounds = _bounds_for(name, config)   # llm-guided, may pin a/b to one relation
+    free_bounds = default_bounds()           # always wide, for diverse coverage
 
     candidates, total_iters, converged_runs = [], 0, 0
     for r in range(n_restarts):
         # different seed per restart so we explore the space more broadly
         cfg_r = RunConfig(**{**vars(config), "seed": config.seed + r})
+        # alternate bounds: llm restarts find the canonical relation fast,
+        # free restarts find diverse relations that cover more mutants
+        bounds = llm_bounds if r % 2 == 0 else free_bounds
         res = optimize(fitness, bounds, cfg_r)
         total_iters += res.iterations
         converged_runs += int(res.converged)
