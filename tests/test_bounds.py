@@ -9,12 +9,12 @@ def test_default_bounds_are_wide_and_free():
     assert b.a.fixed is None
 
 
-def test_even_function_fixes_reflection():
-    # even: P(x) == P(-x) so we search for a=-1, b=0
+def test_even_function_does_not_fix_reflection():
+    # even: P(x)-P(-x)=0 is trivially true for all mutants, so we dont fix a=-1
+    # instead we leave bounds wide so pso can find a useful shift relation
     prof = FunctionProfile(name="cos", symmetry="even")
     b = profile_to_bounds(prof)
-    assert b.a.effective_bounds() == (-1.0, -1.0)
-    assert b.b.effective_bounds() == (0.0, 0.0)
+    assert b.a.fixed is None  # a should be free
 
 
 def test_periodic_function_bounds_shift_to_period():

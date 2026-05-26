@@ -15,8 +15,10 @@ def default_bounds():
 def profile_to_bounds(profile):
     b = default_bounds()
 
-    # if function is even/odd we know the relation involves P(-x)
-    if profile.symmetry in ("even", "odd"):
+    # odd functions: P(x) + P(-x) = 0 is a real non-trivial relation
+    # even functions: P(x) - P(-x) = 0 is trivially true for ALL mutants, useless
+    # so we only fix a=-1 for odd, not even
+    if profile.symmetry == "odd":
         b.a = ParamBound(-1.0, -1.0, fixed=-1.0)
         b.b = ParamBound(0.0, 0.0, fixed=0.0)
 
