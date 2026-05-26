@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import time
-import numpy as np
 
 from .interfaces import RunConfig
 from .functions import FUNCTION_NAMES, get_function
