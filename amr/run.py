@@ -16,24 +16,26 @@ from .metrics import kill_rate, mr_precision
 logger = logging.getLogger("amr")
 
 
-def _bounds_for(name: str, config: RunConfig):
+def _bounds_for(name, config):
     if not config.use_llm:
         return default_bounds()
     try:
         profile = analyze_function(name, config)
         return profile_to_bounds(profile)
     except Exception as exc:
+        # if llm fails we fallback to default bounds and keep going
         logger.warning("recon failed for %s (%s); using default bounds", name, exc)
         return default_bounds()
 
 
-def run_function(name: str, config: RunConfig, n_restarts: int = 8) -> dict:
+def run_function(name, config, n_restarts=8):
     start = time.time()
     fitness = make_fitness(name, config)
     bounds = _bounds_for(name, config)
 
     candidates, total_iters, converged_runs = [], 0, 0
     for r in range(n_restarts):
+        # different seed per restart so we explore the space more broadly
         cfg_r = RunConfig(**{**vars(config), "seed": config.seed + r})
         res = optimize(fitness, bounds, cfg_r)
         total_iters += res.iterations
@@ -77,7 +79,7 @@ def run_function(name: str, config: RunConfig, n_restarts: int = 8) -> dict:
     return result
 
 
-def run_all(config: RunConfig, functions=None, n_restarts: int = 8, force: bool = False) -> list:
+def run_all(config, functions=None, n_restarts=8, force=False):
     functions = functions or FUNCTION_NAMES
     summary = []
     for name in functions:
@@ -92,7 +94,7 @@ def run_all(config: RunConfig, functions=None, n_restarts: int = 8, force: bool 
     return summary
 
 
-def _write_summary(out_dir: str, summary: list) -> None:
+def _write_summary(out_dir, summary):
     import csv
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "summary.csv"), "w", newline="") as fh:

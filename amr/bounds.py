@@ -1,6 +1,8 @@
 from .interfaces import FunctionProfile, SearchBounds, ParamBound
 
-def default_bounds() -> SearchBounds:
+
+def default_bounds():
+    # start with wide ranges, llm narrows them if use_llm is on
     return SearchBounds(
         c1=ParamBound(-2.0, 2.0),
         c2=ParamBound(-2.0, 2.0),
@@ -9,15 +11,16 @@ def default_bounds() -> SearchBounds:
         d=ParamBound(-2.0, 2.0),
     )
 
-def profile_to_bounds(profile: FunctionProfile) -> SearchBounds:
+
+def profile_to_bounds(profile):
     b = default_bounds()
 
-    # Symmetry implies a reflection relation: compare P(x) against P(-x).
+    # if function is even/odd we know the relation involves P(-x)
     if profile.symmetry in ("even", "odd"):
         b.a = ParamBound(-1.0, -1.0, fixed=-1.0)
         b.b = ParamBound(0.0, 0.0, fixed=0.0)
 
-    # Periodicity implies a shift relation: same scale, shift within the period.
+    # periodic functions have shift relations within one period
     if profile.periodic and profile.period:
         p = float(profile.period)
         b.a = ParamBound(1.0, 1.0, fixed=1.0)

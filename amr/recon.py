@@ -15,8 +15,9 @@ Respond with ONLY a JSON object, no prose, with exactly these keys:
 Function to analyze: {name}
 """
 
-def _chat_json(model: str, prompt: str) -> dict:
-    import ollama
+
+def _chat_json(model, prompt):
+    import ollama  # lazy import so tests dont need ollama installed
     resp = ollama.chat(
         model=model,
         messages=[{"role": "user", "content": prompt}],
@@ -24,9 +25,15 @@ def _chat_json(model: str, prompt: str) -> dict:
     )
     return json.loads(resp["message"]["content"])
 
-def _parse_profile(name: str, raw: dict) -> FunctionProfile:
-    domain = raw.get("domain") or [-100.0, 100.0]
-    rng = raw.get("range") or [-100.0, 100.0]
+
+def _parse_profile(name, raw):
+    # llm sometimes returns null for domain/range individual elements, handle that
+    domain = raw.get("domain")
+    if not domain or len(domain) < 2 or domain[0] is None or domain[1] is None:
+        domain = [-100.0, 100.0]
+    rng = raw.get("range")
+    if not rng or len(rng) < 2 or rng[0] is None or rng[1] is None:
+        rng = [-100.0, 100.0]
     return FunctionProfile(
         name=name,
         symmetry=raw.get("symmetry", "none") or "none",
@@ -37,18 +44,21 @@ def _parse_profile(name: str, raw: dict) -> FunctionProfile:
         output_range=(float(rng[0]), float(rng[1])),
     )
 
-def _cache_path(model: str, name: str) -> str:
+
+def _cache_path(model, name):
     safe_model = model.replace("/", "_").replace(":", "_")
     return os.path.join(CACHE_DIR, f"{safe_model}__{name}.json")
 
-def analyze_function(name: str, config: RunConfig) -> FunctionProfile:
+
+def analyze_function(name, config):
     path = _cache_path(config.model, name)
     if os.path.exists(path):
         with open(path) as fh:
-            return _parse_profile(name, json.load(fh))
+            return _parse_profile(name, json.load(fh))  # cache hit, skip llm
 
     raw = _chat_json(config.model, PROMPT_TEMPLATE.format(name=name))
 
+    # write to cache so we dont call the model again for the same function
     os.makedirs(CACHE_DIR, exist_ok=True)
     with open(path, "w") as fh:
         json.dump(raw, fh, indent=2)

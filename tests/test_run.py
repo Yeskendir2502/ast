@@ -4,8 +4,9 @@ import numpy as np
 import amr.run as run
 from amr.interfaces import RunConfig
 
+
 def test_run_function_no_llm_finds_sin_relation(tmp_path, monkeypatch):
-    # Force the default (no-LLM) bounds path and a small mutant set.
+    # small mutant set to keep the test fast
     monkeypatch.setattr(run, "load_mutants",
                         lambda name, base_dir="data/mutants": [
                             {"id": 0, "op": "add_const", "value": 0.05},
@@ -18,9 +19,9 @@ def test_run_function_no_llm_finds_sin_relation(tmp_path, monkeypatch):
     assert result["function"] == "sin"
     assert result["mr_count"] >= 1
     assert 0.0 <= result["kill_rate"] <= 1.0
-    # the add_const mutant must be caught by at least one discovered relation
-    assert result["kill_rate"] >= 0.5
+    assert result["kill_rate"] >= 0.5  # add_const mutant should be caught
     assert os.path.exists(os.path.join(str(tmp_path), "sin.json"))
+
 
 def test_run_function_writes_valid_json(tmp_path, monkeypatch):
     monkeypatch.setattr(run, "load_mutants",

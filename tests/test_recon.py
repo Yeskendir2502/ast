@@ -2,6 +2,7 @@ import json
 import amr.recon as recon
 from amr.interfaces import RunConfig, FunctionProfile
 
+
 def test_parse_profile_reads_valid_json():
     raw = {
         "symmetry": "odd", "periodic": True, "period": 6.283,
@@ -13,11 +14,13 @@ def test_parse_profile_reads_valid_json():
     assert prof.periodic is True
     assert prof.period == 6.283
 
+
 def test_parse_profile_defaults_on_missing_keys():
     prof = recon._parse_profile("abs", {})
     assert prof.symmetry == "none"
     assert prof.periodic is False
     assert prof.period is None
+
 
 def test_analyze_function_uses_chat_and_caches(tmp_path, monkeypatch):
     calls = []
@@ -36,4 +39,4 @@ def test_analyze_function_uses_chat_and_caches(tmp_path, monkeypatch):
 
     assert p1.symmetry == "even"
     assert p2.symmetry == "even"
-    assert len(calls) == 1   # cached, so the model is queried only once
+    assert len(calls) == 1  # only one llm call, second was cached

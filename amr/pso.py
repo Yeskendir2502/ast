@@ -1,13 +1,17 @@
 import numpy as np
 from .interfaces import SearchBounds, RunConfig, PSOResult
 
-def optimize(fitness_fn, bounds: SearchBounds, config: RunConfig) -> PSOResult:
+
+def optimize(fitness_fn, bounds, config):
     rng = np.random.default_rng(config.seed)
     lows, highs = bounds.as_arrays()
     dim = len(lows)
     n = config.n_particles
+
+    # span is used to scale initial velocities; avoid zero on fixed dims
     span = np.where(highs > lows, highs - lows, 1.0)
 
+    # 1. initialize particles randomly within bounds
     pos = rng.uniform(lows, highs, size=(n, dim))
     vel = rng.uniform(-span, span, size=(n, dim)) * 0.1
 
@@ -23,6 +27,7 @@ def optimize(fitness_fn, bounds: SearchBounds, config: RunConfig) -> PSOResult:
     converged = False
     iterations = 0
 
+    # 2. main pso loop
     for it in range(config.max_iterations):
         iterations = it + 1
         r1 = rng.random((n, dim))
@@ -30,13 +35,14 @@ def optimize(fitness_fn, bounds: SearchBounds, config: RunConfig) -> PSOResult:
         vel = (config.inertia * vel
                + config.cognitive * r1 * (pbest - pos)
                + config.social * r2 * (gbest - pos))
-        pos = np.clip(pos + vel, lows, highs)
+        pos = np.clip(pos + vel, lows, highs)  # keep particles in bounds
 
         fit = np.array([fitness_fn(p) for p in pos])
         improved = fit < pbest_fit
         pbest[improved] = pos[improved]
         pbest_fit[improved] = fit[improved]
 
+        # 3. update global best and check convergence
         g = int(np.argmin(pbest_fit))
         if pbest_fit[g] < gbest_fit - config.convergence_eps:
             gbest = pbest[g].copy()
@@ -46,7 +52,7 @@ def optimize(fitness_fn, bounds: SearchBounds, config: RunConfig) -> PSOResult:
             no_improve += 1
 
         history.append(gbest_fit)
-        if no_improve >= config.convergence_window:
+        if no_improve >= config.convergence_window:  # early stop when stuck
             converged = True
             break
 

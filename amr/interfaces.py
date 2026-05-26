@@ -1,27 +1,32 @@
 from dataclasses import dataclass
-from typing import Optional
 import numpy as np
+
+# shared data structures - all modules import from here
+
 
 @dataclass
 class FunctionProfile:
+    # what the llm tells us about a function's math properties
     name: str
-    symmetry: str = "none"          # "even" | "odd" | "none"
+    symmetry: str = "none"       # "even" | "odd" | "none"
     periodic: bool = False
-    period: Optional[float] = None
-    monotonic: str = "none"         # "increasing" | "decreasing" | "none"
-    domain: tuple[float, float] = (-100.0, 100.0)
-    output_range: tuple[float, float] = (-100.0, 100.0)
+    period: float = None         # only set when periodic is true
+    monotonic: str = "none"
+    domain: tuple = (-100.0, 100.0)
+    output_range: tuple = (-100.0, 100.0)
+
 
 @dataclass
 class ParamBound:
     lower: float
     upper: float
-    fixed: Optional[float] = None
+    fixed: float = None  # if set, pso wont move this param at all
 
-    def effective_bounds(self) -> tuple[float, float]:
+    def effective_bounds(self):
         if self.fixed is not None:
-            return (self.fixed, self.fixed)
+            return (self.fixed, self.fixed)  # collapse to a single point
         return (self.lower, self.upper)
+
 
 @dataclass
 class SearchBounds:
@@ -32,6 +37,7 @@ class SearchBounds:
     d: ParamBound
 
     def as_arrays(self):
+        # we need lows and highs as numpy arrays for the pso
         lows, highs = [], []
         for pb in (self.c1, self.c2, self.a, self.b, self.d):
             lo, hi = pb.effective_bounds()
@@ -39,19 +45,22 @@ class SearchBounds:
             highs.append(hi)
         return np.array(lows, dtype=float), np.array(highs, dtype=float)
 
+
 @dataclass
 class MRCandidate:
-    coefficients: dict[str, float]       # {"c1":..,"c2":..,"a":..,"b":..,"d":..}
+    coefficients: dict   # {"c1":..,"c2":..,"a":..,"b":..,"d":..}
     residual: float
     valid: bool = False
 
+
 @dataclass
 class PSOResult:
-    best_params: list[float]
+    best_params: list
     best_fitness: float
     iterations: int
     converged: bool
-    history: list[float]
+    history: list
+
 
 @dataclass
 class RunConfig:
