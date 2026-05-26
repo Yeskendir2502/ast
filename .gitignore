@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-results/
+results*/
 logs/
 .llm_cache/
 *.log
