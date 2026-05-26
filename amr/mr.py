@@ -6,6 +6,7 @@ from .data import sample_inputs
 EPS = 0.0             # template noise term, fixed at 0 for now
 MIN_COEFF_MASS = 0.5  # |c1|+|c2| must be above this to be non-trivial
 PENALTY_WEIGHT = 10.0
+MIN_SPREAD = 0.5      # x1 and x2 must be this far apart on average
 
 
 def make_fitness(name, config):
@@ -20,7 +21,11 @@ def make_fitness(name, config):
         mse = float(np.mean(residual ** 2))
         mass = abs(c1) + abs(c2)
         penalty = PENALTY_WEIGHT * max(0.0, MIN_COEFF_MASS - mass)  # penalize trivial zeros
-        return mse + penalty
+        # penalize degenerate case where x1 and x2 are basically the same point
+        # without this, PSO finds P(x) - P(x) = 0 which kills nothing
+        spread = float(np.mean(np.abs(x2 - x1)))
+        spread_penalty = PENALTY_WEIGHT * max(0.0, MIN_SPREAD - spread)
+        return mse + penalty + spread_penalty
 
     return fitness
 
@@ -31,13 +36,15 @@ def validate(name, params, config):
     x = sample_inputs(name, config.n_inputs, config.seed + 1)  # fresh inputs for validation
     c1, c2, a, b, d = params
     x2 = np.clip(a * x + b + EPS, lo, hi)  # same clamping as in fitness
+    spread = float(np.mean(np.abs(x2 - x)))
     residual = c1 * P(x) + c2 * P(x2) + d
     max_res = float(np.max(np.abs(residual)))
     non_trivial = (abs(c1) + abs(c2)) >= MIN_COEFF_MASS
+    diverse = spread > 0.1  # reject MRs where both evals are at the same point
     coeffs = {"c1": float(c1), "c2": float(c2), "a": float(a), "b": float(b), "d": float(d)}
     return MRCandidate(coefficients=coeffs,
                        residual=max_res,
-                       valid=(max_res < config.tolerance and non_trivial))
+                       valid=(max_res < config.tolerance and non_trivial and diverse))
 
 
 def normalize_coefficients(coeffs, decimals=2):
