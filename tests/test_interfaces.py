@@ -20,4 +20,4 @@ def test_runconfig_defaults():
     c = RunConfig()
     assert c.model == "qwen2.5:7b-instruct"
     assert c.use_llm is True
-    assert c.n_inputs > 0
+    assert c.n_inputs == 200

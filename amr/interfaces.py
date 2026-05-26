@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 
@@ -9,8 +9,8 @@ class FunctionProfile:
     periodic: bool = False
     period: Optional[float] = None
     monotonic: str = "none"         # "increasing" | "decreasing" | "none"
-    domain: tuple = (-100.0, 100.0)
-    range: tuple = (-100.0, 100.0)
+    domain: tuple[float, float] = (-100.0, 100.0)
+    output_range: tuple[float, float] = (-100.0, 100.0)
 
 @dataclass
 class ParamBound:
@@ -18,7 +18,7 @@ class ParamBound:
     upper: float
     fixed: Optional[float] = None
 
-    def effective_bounds(self):
+    def effective_bounds(self) -> tuple[float, float]:
         if self.fixed is not None:
             return (self.fixed, self.fixed)
         return (self.lower, self.upper)
@@ -41,17 +41,17 @@ class SearchBounds:
 
 @dataclass
 class MRCandidate:
-    coefficients: dict       # {"c1":..,"c2":..,"a":..,"b":..,"d":..}
+    coefficients: dict[str, float]       # {"c1":..,"c2":..,"a":..,"b":..,"d":..}
     residual: float
     valid: bool = False
 
 @dataclass
 class PSOResult:
-    best_params: list
+    best_params: list[float]
     best_fitness: float
     iterations: int
     converged: bool
-    history: list
+    history: list[float]
 
 @dataclass
 class RunConfig:
