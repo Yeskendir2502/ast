@@ -26,6 +26,9 @@ _DOMAINS = {
 
 FUNCTION_NAMES = list(_FUNCTIONS.keys())
 
+# only log functions blow up outside their domain - all others are safe everywhere
+_NEEDS_CLAMP = {"log10", "log1p"}
+
 
 def get_function(name):
     return _FUNCTIONS[name]
@@ -33,3 +36,7 @@ def get_function(name):
 
 def get_domain(name):
     return _DOMAINS[name]
+
+
+def needs_clamp(name):
+    return name in _NEEDS_CLAMP

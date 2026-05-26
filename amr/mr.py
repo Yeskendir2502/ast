@@ -1,6 +1,6 @@
 import numpy as np
 from .interfaces import RunConfig, MRCandidate
-from .functions import get_function, get_domain
+from .functions import get_function, get_domain, needs_clamp
 from .data import sample_inputs
 
 EPS = 0.0             # template noise term, fixed at 0 for now
@@ -11,12 +11,14 @@ MIN_SPREAD = 0.5      # x1 and x2 must be this far apart on average
 
 def make_fitness(name, config):
     P = get_function(name)
-    lo, hi = get_domain(name)  # need domain to clamp x2, else log funcs get NaN
+    lo, hi = get_domain(name)
+    clamp = needs_clamp(name)  # only log funcs need clamping, sin/cos are defined everywhere
     x1 = sample_inputs(name, config.n_inputs, config.seed)
 
     def fitness(params):
         c1, c2, a, b, d = params
-        x2 = np.clip(a * x1 + b + EPS, lo, hi)  # clamp to valid domain
+        x2_raw = a * x1 + b + EPS
+        x2 = np.clip(x2_raw, lo, hi) if clamp else x2_raw  # dont clamp sin/cos - breaks shift MRs
         residual = c1 * P(x1) + c2 * P(x2) + d
         mse = float(np.mean(residual ** 2))
         mass = abs(c1) + abs(c2)
@@ -33,9 +35,11 @@ def make_fitness(name, config):
 def validate(name, params, config):
     P = get_function(name)
     lo, hi = get_domain(name)
+    clamp = needs_clamp(name)
     x = sample_inputs(name, config.n_inputs, config.seed + 1)  # fresh inputs for validation
     c1, c2, a, b, d = params
-    x2 = np.clip(a * x + b + EPS, lo, hi)  # same clamping as in fitness
+    x2_raw = a * x + b + EPS
+    x2 = np.clip(x2_raw, lo, hi) if clamp else x2_raw
     spread = float(np.mean(np.abs(x2 - x)))
     residual = c1 * P(x) + c2 * P(x2) + d
     max_res = float(np.max(np.abs(residual)))
