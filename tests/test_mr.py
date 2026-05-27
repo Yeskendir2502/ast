@@ -31,6 +31,13 @@ def test_validate_rejects_false_relation():
     assert cand.valid is False
 
 
+def test_validate_rejects_constant_oracle():
+    # a~0 makes P(ax+b) constant, i.e. a point oracle abs(b)=const, not a true MR
+    cfg = RunConfig(n_inputs=300, tolerance=1e-3, seed=9)
+    cand = validate("abs", [0.0, -0.572, 0.0, -3.33, 1.904], cfg)
+    assert cand.valid is False
+
+
 def test_normalize_and_deduplicate_collapse_scaled_duplicates():
     a = {"c1": 1.0, "c2": 1.0, "a": -1.0, "b": 0.0, "d": 0.0}
     b = {"c1": 2.0, "c2": 2.0, "a": -1.0, "b": 0.0, "d": 0.0}  # scaled copy of a

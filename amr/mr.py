@@ -7,6 +7,7 @@ EPS = 0.0             # template noise term, fixed at 0 for now
 MIN_COEFF_MASS = 0.5  # |c1|+|c2| must be above this to be non-trivial
 PENALTY_WEIGHT = 10.0
 MIN_SPREAD = 0.5      # x1 and x2 must be this far apart on average
+MIN_A = 0.1           # |a| must be away from 0, else P(ax+b) is constant - a point oracle not a real MR
 
 
 def make_fitness(name, config):
@@ -27,7 +28,10 @@ def make_fitness(name, config):
         # without this, PSO finds P(x) - P(x) = 0 which kills nothing
         spread = float(np.mean(np.abs(x2 - x1)))
         spread_penalty = PENALTY_WEIGHT * max(0.0, MIN_SPREAD - spread)
-        return mse + penalty + spread_penalty
+        # penalize a~0: that turns P(ax+b) into a constant, so the relation is just
+        # an oracle P(b)=const, not a real metamorphic relation that transforms the input
+        a_penalty = PENALTY_WEIGHT * max(0.0, MIN_A - abs(a))
+        return mse + penalty + spread_penalty + a_penalty
 
     return fitness
 
@@ -44,11 +48,12 @@ def validate(name, params, config):
     residual = c1 * P(x) + c2 * P(x2) + d
     max_res = float(np.max(np.abs(residual)))
     non_trivial = (abs(c1) + abs(c2)) >= MIN_COEFF_MASS
-    diverse = spread > 0.1  # reject MRs where both evals are at the same point
+    diverse = spread > 0.1            # reject MRs where both evals are at the same point
+    genuine = abs(a) >= MIN_A         # reject a~0 oracles, we only want true transforming MRs
     coeffs = {"c1": float(c1), "c2": float(c2), "a": float(a), "b": float(b), "d": float(d)}
     return MRCandidate(coefficients=coeffs,
                        residual=max_res,
-                       valid=(max_res < config.tolerance and non_trivial and diverse))
+                       valid=(max_res < config.tolerance and non_trivial and diverse and genuine))
 
 
 def normalize_coefficients(coeffs, decimals=2):
